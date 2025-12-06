@@ -1,3 +1,4 @@
+// server/index.ts
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
@@ -12,15 +13,19 @@ declare module "http" {
   }
 }
 
+// ==================== BODY PARSING ====================
+
 app.use(
   express.json({
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
-  }),
+  })
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+// ==================== LOGGING ====================
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -59,8 +64,13 @@ app.use((req, res, next) => {
   next();
 });
 
+// ==================== ROUTES ====================
+
 (async () => {
+  // Register API routes
   await registerRoutes(httpServer, app);
+
+  // ==================== ERROR HANDLING ====================
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -70,9 +80,9 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // ==================== STATIC FILES ====================
+
+  // Serve static files in production OR Vite in dev
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
@@ -80,19 +90,17 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
+  // ==================== START SERVER ====================
+
   const port = parseInt(process.env.PORT || "5000", 10);
   const listenOptions: any = { port, host: "0.0.0.0" };
-  // `reusePort` is not supported on some platforms (notably Windows),
-  // so only set it when available to avoid ENOTSUP errors.
+  
   if (process.platform !== "win32") {
     listenOptions.reusePort = true;
   }
 
   httpServer.listen(listenOptions, () => {
-    log(`serving on port ${port}`);
+    log(`🚀 Server running on port ${port}`);
+    log(`📦 Environment: ${process.env.NODE_ENV || "development"}`);
   });
 })();
