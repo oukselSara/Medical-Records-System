@@ -1,0 +1,212 @@
+{
+  "patients": {
+    "p1": {
+      "firstName": "Ahmed",
+      "lastName": "Bennabi",
+      "dateOfBirth": "1980-03-12",
+      "gender": "Male",
+      "email": "ahmed.ben@example.com",
+      "phone": "+213661112233",
+      "address": "Clinique A, Oum El Bouaghi",
+      "bloodType": "A+",
+      "status": "Active",
+      "emergencyContactName": "Samir Bennabi",
+      "emergencyContactPhone": "+213669992211",
+      "createdAt": "2025-01-01T10:00:00Z",
+      "updatedAt": "2025-01-01T10:00:00Z"
+    },
+    "p2": {
+      "firstName": "Imene",
+      "lastName": "Saadi",
+      "dateOfBirth": "1992-09-21",
+      "gender": "Female",
+      "email": "imene.s@example.com",
+      "phone": "+213666889977",
+      "address": "Clinique B, Constantine",
+      "bloodType": "O+",
+      "status": "Active",
+      "emergencyContactName": "Amina Saadi",
+      "emergencyContactPhone": "+213556778899",
+      "createdAt": "2025-01-02T12:20:00Z",
+      "updatedAt": "2025-01-02T12:20:00Z"
+    },
+    "p3": {
+      "firstName": "Rachid",
+      "lastName": "Mansouri",
+      "dateOfBirth": "1964-11-03",
+      "gender": "Male",
+      "email": "rachid.m@example.com",
+      "phone": "+213661224455",
+      "address": "Clinique C, Batna",
+      "bloodType": "B+",
+      "status": "Active",
+      "emergencyContactName": "Nadia Mansouri",
+      "emergencyContactPhone": "+213668884422",
+      "createdAt": "2025-01-03T09:50:00Z",
+      "updatedAt": "2025-01-03T09:50:00Z"
+    },
+    "p4": {
+      "firstName": "Nadia",
+      "lastName": "Hamdi",
+      "dateOfBirth": "1997-01-18",
+      "gender": "Female",
+      "email": "nadia.h@example.com",
+      "phone": "+213665442210",
+      "address": "Clinique A, Oum El Bouaghi",
+      "bloodType": "AB+",
+      "status": "Active",
+      "emergencyContactName": "Houda Hamdi",
+      "emergencyContactPhone": "+213662221110",
+      "createdAt": "2025-01-04T11:10:00Z",
+      "updatedAt": "2025-01-04T11:10:00Z"
+    },
+    "p5": {
+      "firstName": "Sofiane",
+      "lastName": "Zerrouki",
+      "dateOfBirth": "1974-07-08",
+      "gender": "Male",
+      "email": "sofiane.z@example.com",
+      "phone": "+213664558899",
+      "address": "Clinique B, Constantine",
+      "bloodType": "O-",
+      "status": "Active",
+      "emergencyContactName": "Karim Zerrouki",
+      "emergencyContactPhone": "+213664559999",
+      "createdAt": "2025-01-05T08:00:00Z",
+      "updatedAt": "2025-01-05T08:00:00Z"
+    },
+
+    "p6": {
+      "firstName": "Selma",
+      "lastName": "Lakhdar",
+      "dateOfBirth": "1999-11-12",
+      "gender": "Female",
+      "email": "selma.l@example.com",
+      "phone": "+213665886677",
+      "address": "Algiers",
+      "bloodType": "A-",
+      "status": "Active",
+      "emergencyContactName": "Meriem Lakhdar",
+      "emergencyContactPhone": "+213662335577",
+      "createdAt": "2025-01-06T09:15:00Z",
+      "updatedAt": "2025-01-06T09:15:00Z"
+    },
+    "p7": {
+      "firstName": "Farid",
+      "lastName": "Boukhalfa",
+      "dateOfBirth": "1985-04-15",
+      "gender": "Male",
+      "email": "farid.b@example.com",
+      "phone": "+213665119977",
+      "address": "Oran",
+      "bloodType": "B-",
+      "status": "Active",
+      "emergencyContactName": "Said Boukhalfa",
+      "emergencyContactPhone": "+213662556699",
+      "createdAt": "2025-01-07T14:00:00Z",
+      "updatedAt": "2025-01-07T14:00:00Z"
+    },
+    "p8": {
+      "firstName": "Leila",
+      "lastName": "Ait Ali",
+      "dateOfBirth": "1978-04-05",
+      "gender": "Female",
+      "email": "leila.a@example.com",
+      "phone": "+213669993344",
+      "address": "Tizi Ouzou",
+      "bloodType": "AB-",
+      "status": "Active",
+      "emergencyContactName": "Zahra Ait Ali",
+      "emergencyContactPhone": "+213661122554",
+      "createdAt": "2025-01-08T13:00:00Z",
+      "updatedAt": "2025-01-08T13:00:00Z"
+    },
+
+    "p9": {
+      "firstName": "Mohamed",
+      "lastName": "Gacem",
+      "dateOfBirth": "1991-06-30",
+      "gender": "Male",
+      "email": "mo.gacem@example.com",
+      "phone": "+213667771122",
+      "address": "Annaba",
+      "bloodType": "O+",
+      "status": "Active",
+      "emergencyContactName": "Fatima Gacem",
+      "emergencyContactPhone": "+213664441100",
+      "createdAt": "2025-01-09T11:30:00Z",
+      "updatedAt": "2025-01-09T11:30:00Z"
+    },
+
+    "p10": {
+      "firstName": "Sara",
+      "lastName": "Belkadi",
+      "dateOfBirth": "1995-02-11",
+      "gender": "Female",
+      "email": "sara.b@example.com",
+      "phone": "+213661188299",
+      "address": "Setif",
+      "bloodType": "A+",
+      "status": "Active",
+      "emergencyContactName": "Amina Belkadi",
+      "emergencyContactPhone": "+213666788200",
+      "createdAt": "2025-01-10T07:45:00Z",
+      "updatedAt": "2025-01-10T07:45:00Z"
+    }
+  },
+
+  "users": {
+    "u1": { "name": "Dr. Sarah Benali", "role": "doctor", "clinicId": "c1" },
+    "u2": { "name": "Dr. Yacine Lounis", "role": "doctor", "clinicId": "c2" },
+    "u3": { "name": "Nurse Amina K.", "role": "nurse", "clinicId": "c1" },
+    "u4": { "name": "Pharmacist Nora B.", "role": "pharmacist", "clinicId": "c3" },
+    "u5": { "name": "Nurse Karim M.", "role": "nurse", "clinicId": "c2" }
+  },
+
+  "medicalRecords": {
+    "r1": { "patientId": "p1", "diagnosis": "Hypertension", "notes": "High blood pressure", "createdBy": "u1" },
+    "r2": { "patientId": "p2", "diagnosis": "Asthma", "notes": "Respiratory difficulty", "createdBy": "u2" },
+    "r3": { "patientId": "p3", "diagnosis": "Diabetes Type 2", "notes": "Monitor glucose", "createdBy": "u1" },
+    "r4": { "patientId": "p4", "diagnosis": "Anemia", "notes": "Iron deficiency", "createdBy": "u3" },
+    "r5": { "patientId": "p5", "diagnosis": "Migraine", "notes": "Recurrent headaches", "createdBy": "u2" },
+    "r6": { "patientId": "p6", "diagnosis": "Allergy", "notes": "Seasonal allergies", "createdBy": "u1" },
+    "r7": { "patientId": "p7", "diagnosis": "Arthritis", "notes": "Joint pain", "createdBy": "u2" },
+    "r8": { "patientId": "p8", "diagnosis": "Insomnia", "notes": "Sleep difficulty", "createdBy": "u1" },
+    "r9": { "patientId": "p9", "diagnosis": "Sinusitis", "notes": "Nasal inflammation", "createdBy": "u3" },
+    "r10": { "patientId": "p10", "diagnosis": "Stress", "notes": "High stress level", "createdBy": "u2" }
+  },
+
+  "prescriptions": {
+    "pr1": { "patientId": "p1", "doctorId": "u1", "medication": "Amlodipine", "dosage": "5mg daily" },
+    "pr2": { "patientId": "p2", "doctorId": "u2", "medication": "Ventolin", "dosage": "2 puffs as needed" },
+    "pr3": { "patientId": "p3", "doctorId": "u1", "medication": "Metformin", "dosage": "850mg twice daily" },
+    "pr4": { "patientId": "p4", "doctorId": "u1", "medication": "Iron Tablets", "dosage": "1/day" },
+    "pr5": { "patientId": "p5", "doctorId": "u2", "medication": "Ibuprofen", "dosage": "400mg as needed" },
+    "pr6": { "patientId": "p6", "doctorId": "u1", "medication": "Cetirizine", "dosage": "10mg daily" },
+    "pr7": { "patientId": "p7", "doctorId": "u2", "medication": "Paracetamol", "dosage": "500mg twice daily" },
+    "pr8": { "patientId": "p8", "doctorId": "u1", "medication": "Melatonin", "dosage": "2mg nightly" },
+    "pr9": { "patientId": "p9", "doctorId": "u3", "medication": "Nasal Spray", "dosage": "2/day" },
+    "pr10": { "patientId": "p10", "doctorId": "u2", "medication": "Anxiolytic", "dosage": "1 nightly" }
+  },
+
+  "treatments": {
+    "t1": { "patientId": "p1", "prescriptionId": "pr1", "status": "Ongoing", "nurseId": "u3" },
+    "t2": { "patientId": "p2", "prescriptionId": "pr2", "status": "Ongoing", "nurseId": "u5" },
+    "t3": { "patientId": "p3", "prescriptionId": "pr3", "status": "Stable", "nurseId": "u3" },
+    "t4": { "patientId": "p4", "prescriptionId": "pr4", "status": "Ongoing", "nurseId": "u3" },
+    "t5": { "patientId": "p5", "prescriptionId": "pr5", "status": "Improving", "nurseId": "u5" },
+    "t6": { "patientId": "p6", "prescriptionId": "pr6", "status": "Ongoing", "nurseId": "u3" },
+    "t7": { "patientId": "p7", "prescriptionId": "pr7", "status": "Ongoing", "nurseId": "u5" },
+    "t8": { "patientId": "p8", "prescriptionId": "pr8", "status": "Improving", "nurseId": "u3" },
+    "t9": { "patientId": "p9", "prescriptionId": "pr9", "status": "Stable", "nurseId": "u3" },
+    "t10": { "patientId": "p10", "prescriptionId": "pr10", "status": "Ongoing", "nurseId": "u5" }
+  },
+
+  "notifications": {
+    "n1": { "userId": "u1", "message": "New patient added", "type": "info", "read": false },
+    "n2": { "userId": "u3", "message": "Treatment updated", "type": "update", "read": false },
+    "n3": { "userId": "u4", "message": "New prescription to prepare", "type": "task", "read": false },
+    "n4": { "userId": "u2", "message": "Medical record modified", "type": "alert", "read": true },
+    "n5": { "userId": "u1", "message": "Lab results available", "type": "info", "read": false }
+  }
+}
