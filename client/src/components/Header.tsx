@@ -73,14 +73,17 @@ export function Header({ onSearch, showSearch = false }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* FIXED: Now includes all 5 roles */}
         <Select value={user?.role} onValueChange={handleRoleChange}>
-          <SelectTrigger className="w-32 bg-white/50 dark:bg-gray-800/50 border-pink-100/50" data-testid="select-role">
+          <SelectTrigger className="w-36 bg-white/50 dark:bg-gray-800/50 border-pink-100/50" data-testid="select-role">
             <SelectValue placeholder="Select role" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="admin">Admin</SelectItem>
             <SelectItem value="doctor">Doctor</SelectItem>
             <SelectItem value="nurse">Nurse</SelectItem>
             <SelectItem value="pharmacist">Pharmacist</SelectItem>
+            <SelectItem value="patient">Patient</SelectItem>
           </SelectContent>
         </Select>
 
@@ -114,6 +117,9 @@ export function Header({ onSearch, showSearch = false }: HeaderProps) {
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium">{user?.displayName}</p>
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
+                <div className="mt-2">
+                  <RoleBadge role={user?.role || "patient"} />
+                </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-pink-100/50 dark:bg-pink-900/30" />
