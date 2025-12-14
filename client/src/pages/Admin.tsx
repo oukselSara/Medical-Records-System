@@ -3,7 +3,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import { usersCollection } from "@/lib/firestore";
+import { usersCollection, patientsCollection } from "@/lib/firestore";
 import { GlassCard } from "@/components/GlassCard";
 import { SkeletonList } from "@/components/LoadingSpinner";
 import { RoleBadge } from "@/components/StatusBadge";
@@ -14,7 +14,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -31,22 +30,31 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { User, UserRole } from "@shared/schema";
+import type { User, UserRole, Patient } from "@shared/schema";
 import {
   Shield,
   Search,
-  UserPlus,
   Edit,
   Trash2,
   Mail,
-  Calendar,
   CheckCircle,
   XCircle,
   Users,
   Activity,
+  Link as LinkIcon,
+  UserPlus,
+  Calendar,
+  Phone,
+  MapPin,
 } from "lucide-react";
 import { z } from "zod";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -57,6 +65,7 @@ const formSchema = z.object({
   role: z.enum(["admin", "doctor", "nurse", "pharmacist", "patient"]),
   department: z.string().optional(),
   licenseNumber: z.string().optional(),
+  patientId: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -69,6 +78,7 @@ export default function Admin() {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [activeTab, setActiveTab] = useState("users");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -78,15 +88,24 @@ export default function Admin() {
       role: "patient",
       department: "",
       licenseNumber: "",
+      patientId: "",
     },
   });
 
-  const { data: users = [], isLoading } = useQuery<User[]>({
+  const { data: users = [], isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
     queryFn: async () => {
-      // This should fetch all users from Firestore
       const allUsers = await usersCollection.getAll();
       return allUsers;
+    },
+    enabled: user?.role === "admin",
+  });
+
+  const { data: patients = [], isLoading: patientsLoading } = useQuery<Patient[]>({
+    queryKey: ["/api/admin/patients"],
+    queryFn: async () => {
+      const allPatients = await patientsCollection.getAll();
+      return allPatients;
     },
     enabled: user?.role === "admin",
   });
@@ -126,7 +145,23 @@ export default function Admin() {
     },
   });
 
-  // Redirect if not admin
+  const linkPatientMutation = useMutation({
+    mutationFn: async ({ userId, patientId }: { userId: string; patientId: string }) => {
+      // Update user with patient link
+      await usersCollection.update(userId, { patientId });
+      // Update patient with user link
+      await patientsCollection.update(patientId, { userId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/patients"] });
+      toast({ title: "Patient linked successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to link patient", variant: "destructive" });
+    },
+  });
+
   if (user?.role !== "admin") {
     return (
       <div className="p-6">
@@ -151,6 +186,9 @@ export default function Admin() {
     return matchesSearch && matchesRole;
   });
 
+  const unlinkedPatients = patients.filter(p => !p.userId);
+  const linkedPatients = patients.filter(p => p.userId);
+
   const onSubmit = (values: FormValues) => {
     if (editingUser) {
       updateUserMutation.mutate({
@@ -171,11 +209,11 @@ export default function Admin() {
       role: userToEdit.role,
       department: userToEdit.department || "",
       licenseNumber: userToEdit.licenseNumber || "",
+      patientId: userToEdit.patientId || "",
     });
     setIsDialogOpen(true);
   };
 
-  // Statistics
   const stats = [
     {
       label: "Total Users",
@@ -190,15 +228,15 @@ export default function Admin() {
       color: "from-emerald-500 to-teal-500",
     },
     {
-      label: "Doctors",
-      value: users.filter((u) => u.role === "doctor").length,
-      icon: Shield,
-      color: "from-purple-500 to-pink-500",
+      label: "Total Patients",
+      value: patients.length,
+      icon: Users,
+      color: "from-pink-500 to-rose-500",
     },
     {
-      label: "Patients",
-      value: users.filter((u) => u.role === "patient").length,
-      icon: Users,
+      label: "Unlinked Patients",
+      value: unlinkedPatients.length,
+      icon: LinkIcon,
       color: "from-orange-500 to-red-500",
     },
   ];
@@ -216,7 +254,7 @@ export default function Admin() {
             Admin Dashboard
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage users and system settings
+            Manage users, patients, and system settings
           </p>
         </div>
       </div>
@@ -242,163 +280,292 @@ export default function Admin() {
         ))}
       </div>
 
-      {/* Filters */}
-      <GlassCard className="p-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search users by name or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-white/50 border-pink-100/50"
-              data-testid="input-search-users"
-            />
-          </div>
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger
-              className="w-40 bg-white/50 border-pink-100/50"
-              data-testid="select-role-filter"
-            >
-              <SelectValue placeholder="Filter by role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="doctor">Doctor</SelectItem>
-              <SelectItem value="nurse">Nurse</SelectItem>
-              <SelectItem value="pharmacist">Pharmacist</SelectItem>
-              <SelectItem value="patient">Patient</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </GlassCard>
+      {/* Tabs for Users and Patients */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="patients">Patients</TabsTrigger>
+        </TabsList>
 
-      {/* Users List */}
-      {isLoading ? (
-        <SkeletonList count={4} />
-      ) : filteredUsers.length === 0 ? (
-        <GlassCard className="p-12 text-center">
-          <Users className="w-16 h-16 mx-auto text-indigo-200 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
-            No users found
-          </h3>
-          <p className="text-muted-foreground">
-            {searchTerm
-              ? "Try adjusting your search criteria"
-              : "No users in the system yet"}
-          </p>
-        </GlassCard>
-      ) : (
-        <div className="space-y-3">
-          <AnimatePresence>
-            {filteredUsers.map((u, index) => (
-              <motion.div
-                key={u.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <GlassCard
-                  className="p-5"
-                  data-testid={`user-card-${u.id}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <Avatar className="w-12 h-12 border-2 border-indigo-200/50">
-                        <AvatarFallback className="bg-gradient-to-br from-indigo-400 to-purple-500 text-white">
-                          {u.displayName.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-gray-800 dark:text-white">
-                            {u.displayName}
-                          </h3>
-                          {u.isActive ? (
-                            <CheckCircle className="w-4 h-4 text-emerald-500" />
-                          ) : (
-                            <XCircle className="w-4 h-4 text-red-500" />
-                          )}
+        {/* Users Tab */}
+        <TabsContent value="users" className="space-y-4">
+          <GlassCard className="p-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search users by name or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-white/50 border-pink-100/50"
+                />
+              </div>
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger className="w-40 bg-white/50 border-pink-100/50">
+                  <SelectValue placeholder="Filter by role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="doctor">Doctor</SelectItem>
+                  <SelectItem value="nurse">Nurse</SelectItem>
+                  <SelectItem value="pharmacist">Pharmacist</SelectItem>
+                  <SelectItem value="patient">Patient</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </GlassCard>
+
+          {usersLoading ? (
+            <SkeletonList count={4} />
+          ) : filteredUsers.length === 0 ? (
+            <GlassCard className="p-12 text-center">
+              <Users className="w-16 h-16 mx-auto text-indigo-200 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
+                No users found
+              </h3>
+              <p className="text-muted-foreground">
+                {searchTerm
+                  ? "Try adjusting your search criteria"
+                  : "No users in the system yet"}
+              </p>
+            </GlassCard>
+          ) : (
+            <div className="space-y-3">
+              <AnimatePresence>
+                {filteredUsers.map((u, index) => {
+                  const linkedPatient = patients.find(p => p.id === u.patientId);
+                  return (
+                    <motion.div
+                      key={u.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <GlassCard className="p-5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <Avatar className="w-12 h-12 border-2 border-indigo-200/50">
+                              <AvatarFallback className="bg-gradient-to-br from-indigo-400 to-purple-500 text-white">
+                                {u.displayName.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-semibold text-gray-800 dark:text-white">
+                                  {u.displayName}
+                                </h3>
+                                {u.isActive ? (
+                                  <CheckCircle className="w-4 h-4 text-emerald-500" />
+                                ) : (
+                                  <XCircle className="w-4 h-4 text-red-500" />
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                <Mail className="w-3 h-3" /> {u.email}
+                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <RoleBadge role={u.role} />
+                                {linkedPatient && (
+                                  <span className="text-xs px-2 py-1 rounded-md bg-pink-100 text-pink-700 border border-pink-200 flex items-center gap-1">
+                                    <LinkIcon className="w-3 h-3" />
+                                    {linkedPatient.firstName} {linkedPatient.lastName}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className={
+                                u.isActive
+                                  ? "border-red-200 text-red-600"
+                                  : "border-emerald-200 text-emerald-600"
+                              }
+                              onClick={() =>
+                                toggleUserStatusMutation.mutate({
+                                  id: u.id,
+                                  isActive: !u.isActive,
+                                })
+                              }
+                            >
+                              {u.isActive ? (
+                                <>
+                                  <XCircle className="w-3 h-3 mr-1" /> Deactivate
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle className="w-3 h-3 mr-1" /> Activate
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-indigo-200 text-indigo-600"
+                              onClick={() => openEditDialog(u)}
+                            >
+                              <Edit className="w-3 h-3 mr-1" /> Edit
+                            </Button>
+                            {u.id !== user.id && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-red-200 text-red-600"
+                                onClick={() => {
+                                  if (
+                                    confirm(
+                                      "Are you sure you want to delete this user?"
+                                    )
+                                  ) {
+                                    deleteUserMutation.mutate(u.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-sm text-muted-foreground flex items-center gap-2">
-                          <Mail className="w-3 h-3" /> {u.email}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <RoleBadge role={u.role} />
-                          {u.department && (
-                            <span className="text-xs text-muted-foreground">
-                              {u.department}
-                            </span>
+                      </GlassCard>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Patients Tab */}
+        <TabsContent value="patients" className="space-y-4">
+          {patientsLoading ? (
+            <SkeletonList count={4} />
+          ) : patients.length === 0 ? (
+            <GlassCard className="p-12 text-center">
+              <Users className="w-16 h-16 mx-auto text-pink-200 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
+                No patients found
+              </h3>
+              <p className="text-muted-foreground">
+                No patient records in the system yet
+              </p>
+            </GlassCard>
+          ) : (
+            <>
+              {unlinkedPatients.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                    <LinkIcon className="w-5 h-5 text-orange-500" />
+                    Unlinked Patients ({unlinkedPatients.length})
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                    {unlinkedPatients.map((patient) => (
+                      <GlassCard key={patient.id} className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="w-10 h-10 border-2 border-pink-200/50">
+                              <AvatarFallback className="bg-gradient-to-br from-pink-300 to-rose-400 text-white">
+                                {patient.firstName[0]}{patient.lastName[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <h4 className="font-semibold text-gray-800 dark:text-white text-sm">
+                                {patient.firstName} {patient.lastName}
+                              </h4>
+                              {patient.email && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Mail className="w-3 h-3" /> {patient.email}
+                                </p>
+                              )}
+                              {patient.phone && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Phone className="w-3 h-3" /> {patient.phone}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <Select
+                            onValueChange={(userId) => {
+                              linkPatientMutation.mutate({
+                                userId,
+                                patientId: patient.id,
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="w-32 h-8 text-xs">
+                              <SelectValue placeholder="Link User" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {users
+                                .filter((u) => u.role === "patient" && !u.patientId)
+                                .map((u) => (
+                                  <SelectItem key={u.id} value={u.id}>
+                                    {u.displayName}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </GlassCard>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                <Users className="w-5 h-5 text-pink-500" />
+                All Patients ({patients.length})
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {patients.map((patient) => {
+                  const linkedUser = users.find(u => u.id === patient.userId);
+                  return (
+                    <GlassCard key={patient.id} className="p-4">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="w-12 h-12 border-2 border-pink-200/50">
+                          <AvatarFallback className="bg-gradient-to-br from-pink-300 to-rose-400 text-white">
+                            {patient.firstName[0]}{patient.lastName[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-gray-800 dark:text-white">
+                            {patient.firstName} {patient.lastName}
+                          </h4>
+                          {linkedUser && (
+                            <p className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
+                              <CheckCircle className="w-3 h-3" />
+                              Linked to {linkedUser.displayName}
+                            </p>
                           )}
+                          <div className="mt-2 space-y-1">
+                            {patient.email && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Mail className="w-3 h-3" /> {patient.email}
+                              </p>
+                            )}
+                            {patient.phone && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Phone className="w-3 h-3" /> {patient.phone}
+                              </p>
+                            )}
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Calendar className="w-3 h-3" /> {patient.dateOfBirth}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className={
-                          u.isActive
-                            ? "border-red-200 text-red-600"
-                            : "border-emerald-200 text-emerald-600"
-                        }
-                        onClick={() =>
-                          toggleUserStatusMutation.mutate({
-                            id: u.id,
-                            isActive: !u.isActive,
-                          })
-                        }
-                        data-testid={`button-toggle-status-${u.id}`}
-                      >
-                        {u.isActive ? (
-                          <>
-                            <XCircle className="w-3 h-3 mr-1" /> Deactivate
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="w-3 h-3 mr-1" /> Activate
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-indigo-200 text-indigo-600"
-                        onClick={() => openEditDialog(u)}
-                        data-testid={`button-edit-${u.id}`}
-                      >
-                        <Edit className="w-3 h-3 mr-1" /> Edit
-                      </Button>
-                      {u.id !== user.id && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-red-200 text-red-600"
-                          onClick={() => {
-                            if (
-                              confirm(
-                                "Are you sure you want to delete this user?"
-                              )
-                            ) {
-                              deleteUserMutation.mutate(u.id);
-                            }
-                          }}
-                          data-testid={`button-delete-${u.id}`}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </GlassCard>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      )}
+                    </GlassCard>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Edit User Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -415,7 +582,7 @@ export default function Admin() {
                   <FormItem>
                     <FormLabel>Display Name</FormLabel>
                     <FormControl>
-                      <Input {...field} data-testid="input-display-name" />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -429,12 +596,7 @@ export default function Admin() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        type="email"
-                        disabled
-                        data-testid="input-email"
-                      />
+                      <Input {...field} type="email" disabled />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -452,7 +614,7 @@ export default function Admin() {
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger data-testid="select-role">
+                        <SelectTrigger>
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                       </FormControl>
@@ -469,6 +631,36 @@ export default function Admin() {
                 )}
               />
 
+              {form.watch("role") === "patient" && (
+                <FormField
+                  control={form.control}
+                  name="patientId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Link to Patient Record</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select patient" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {unlinkedPatients.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.firstName} {p.lastName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
               <FormField
                 control={form.control}
                 name="department"
@@ -476,21 +668,7 @@ export default function Admin() {
                   <FormItem>
                     <FormLabel>Department (Optional)</FormLabel>
                     <FormControl>
-                      <Input {...field} data-testid="input-department" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="licenseNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>License Number (Optional)</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-license" />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -502,7 +680,6 @@ export default function Admin() {
                   type="button"
                   variant="outline"
                   onClick={() => setIsDialogOpen(false)}
-                  data-testid="button-cancel"
                 >
                   Cancel
                 </Button>
@@ -510,7 +687,6 @@ export default function Admin() {
                   type="submit"
                   className="bg-gradient-to-r from-indigo-500 to-purple-500"
                   disabled={updateUserMutation.isPending}
-                  data-testid="button-submit-user"
                 >
                   Update User
                 </Button>
