@@ -1,3 +1,4 @@
+// client/src/components/AppSidebar.tsx
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,10 +29,21 @@ import {
   Pill,
   Stethoscope,
   ClipboardList,
+  Shield,
+  User,
+  Calendar,
 } from "lucide-react";
 import type { UserRole } from "@shared/schema";
 
 const menuItems = {
+  admin: [
+    { title: "Dashboard", url: "/", icon: LayoutDashboard },
+    { title: "User Management", url: "/admin", icon: Shield },
+    { title: "Patients", url: "/patients", icon: Users },
+    { title: "Prescriptions", url: "/prescriptions", icon: Pill },
+    { title: "Treatments", url: "/treatments", icon: Activity },
+    { title: "Notifications", url: "/notifications", icon: Bell },
+  ],
   doctor: [
     { title: "Dashboard", url: "/", icon: LayoutDashboard },
     { title: "Patients", url: "/patients", icon: Users },
@@ -48,6 +60,11 @@ const menuItems = {
   pharmacist: [
     { title: "Dashboard", url: "/", icon: LayoutDashboard },
     { title: "Prescriptions", url: "/prescriptions", icon: Pill },
+    { title: "Notifications", url: "/notifications", icon: Bell },
+  ],
+  patient: [
+    { title: "My Portal", url: "/patient-portal", icon: User },
+    { title: "Appointments", url: "/patient-appointments", icon: Calendar },
     { title: "Notifications", url: "/notifications", icon: Bell },
   ],
 };
@@ -88,7 +105,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => {
-                const isActive = location === item.url;
+                const isActive = location === item.url || (item.url !== "/" && location.startsWith(item.url));
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
@@ -96,7 +113,7 @@ export function AppSidebar() {
                       isActive={isActive}
                       className={isActive ? "bg-pink-100/60 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300" : ""}
                     >
-                      <Link href={item.url} data-testid={`nav-${item.title.toLowerCase()}`}>
+                      <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/ /g, '-')}`}>
                         <item.icon className={isActive ? "text-pink-600" : ""} />
                         <span>{item.title}</span>
                       </Link>

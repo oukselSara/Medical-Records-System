@@ -100,7 +100,7 @@ app.use((req, res, next) => {
   }
 
   httpServer.listen(listenOptions, () => {
-    log(`🚀 Server running on port ${port}`);
-    log(`📦 Environment: ${process.env.NODE_ENV || "development"}`);
+    log(` Server running on port ${port}`);
+    log(` Environment: ${process.env.NODE_ENV || "development"}`);
   });
 })();

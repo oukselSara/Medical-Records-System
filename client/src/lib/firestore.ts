@@ -1,3 +1,4 @@
+// client/src/lib/firestore.ts
 import {
   collection,
   doc,
@@ -18,10 +19,12 @@ import type {
   Treatment,
   Notification,
   User,
+  Appointment,
   InsertPatient,
   InsertPrescription,
   InsertTreatment,
   InsertNotification,
+  InsertAppointment,
 } from "@shared/schema";
 
 const COLLECTIONS = {
@@ -30,6 +33,7 @@ const COLLECTIONS = {
   PRESCRIPTIONS: "prescriptions",
   TREATMENTS: "treatments",
   NOTIFICATIONS: "notifications",
+  APPOINTMENTS: "appointments",
 } as const;
 
 const toISOString = () => new Date().toISOString();
@@ -37,18 +41,24 @@ const toISOString = () => new Date().toISOString();
 const checkDb = () => {
   if (!isFirebaseConfigured || !db) {
     throw new Error(
-      "Firebase is not configured. DB Please check your environment variables.",
+      "Firebase is not configured. Please check your environment variables.",
     );
   }
   return db;
 };
 
+// ==================== USERS COLLECTION ====================
 export const usersCollection = {
   async create(userId: string, userData: Omit<User, "id">): Promise<User> {
     const database = checkDb();
     const docRef = doc(database, COLLECTIONS.USERS, userId);
-    await setDoc(docRef, userData);
-    return { id: userId, ...userData };
+    const userWithTimestamp = {
+      ...userData,
+      createdAt: toISOString(),
+      isActive: true,
+    };
+    await setDoc(docRef, userWithTimestamp);
+    return { id: userId, ...userWithTimestamp };
   },
 
   async get(userId: string): Promise<User | null> {
@@ -61,19 +71,36 @@ export const usersCollection = {
     return null;
   },
 
+  async getAll(): Promise<User[]> {
+    const database = checkDb();
+    const q = query(
+      collection(database, COLLECTIONS.USERS),
+      orderBy("createdAt", "desc")
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as User);
+  },
+
   async update(userId: string, data: Partial<User>): Promise<void> {
     const database = checkDb();
     const docRef = doc(database, COLLECTIONS.USERS, userId);
-    await updateDoc(docRef, data);
+    await updateDoc(docRef, { ...data, updatedAt: toISOString() });
+  },
+
+  async delete(userId: string): Promise<void> {
+    const database = checkDb();
+    const docRef = doc(database, COLLECTIONS.USERS, userId);
+    await deleteDoc(docRef);
   },
 };
 
+// ==================== PATIENTS COLLECTION ====================
 export const patientsCollection = {
   async getAll(): Promise<Patient[]> {
     const database = checkDb();
     const q = query(
       collection(database, COLLECTIONS.PATIENTS),
-      orderBy("createdAt", "desc"),
+      orderBy("createdAt", "desc")
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Patient);
@@ -89,9 +116,20 @@ export const patientsCollection = {
     return null;
   },
 
+  async getByUserId(userId: string): Promise<Patient | null> {
+    const database = checkDb();
+    const q = query(
+      collection(database, COLLECTIONS.PATIENTS),
+      where("userId", "==", userId)
+    );
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return null;
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...doc.data() } as Patient;
+  },
+
   async create(data: InsertPatient): Promise<Patient> {
     const database = checkDb();
-    // Remove updatedBy and updatedAt from create data as they're only for updates
     const { updatedBy, updatedAt, ...createData } = data as any;
     const docRef = await addDoc(collection(database, COLLECTIONS.PATIENTS), {
       ...createData,
@@ -119,39 +157,37 @@ export const patientsCollection = {
       (p) =>
         p.firstName.toLowerCase().includes(term) ||
         p.lastName.toLowerCase().includes(term) ||
-        p.email?.toLowerCase().includes(term),
+        p.email?.toLowerCase().includes(term)
     );
   },
 };
 
+// ==================== PRESCRIPTIONS COLLECTION ====================
 export const prescriptionsCollection = {
   async getAll(): Promise<Prescription[]> {
     const database = checkDb();
     const q = query(
       collection(database, COLLECTIONS.PRESCRIPTIONS),
-      orderBy("createdAt", "desc"),
+      orderBy("createdAt", "desc")
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map(
-      (d) => ({ id: d.id, ...d.data() }) as Prescription,
+      (d) => ({ id: d.id, ...d.data() }) as Prescription
     );
   },
 
-getByPatient: async (patientId: string): Promise<Prescription[]> => {
-  const database = checkDb();
-  console.log('🔍 Fetching prescriptions for patient:', patientId);
-  const q = query(
-    collection(database, COLLECTIONS.PRESCRIPTIONS),
-    where('patientId', '==', patientId)
-  );
-  const snapshot = await getDocs(q);
-  const results = snapshot.docs.map(doc => ({ 
-    id: doc.id, 
-    ...doc.data() 
-  } as Prescription));
-  console.log('📊 Found prescriptions:', results.length);
-  return results;
-},
+  async getByPatient(patientId: string): Promise<Prescription[]> {
+    const database = checkDb();
+    const q = query(
+      collection(database, COLLECTIONS.PRESCRIPTIONS),
+      where("patientId", "==", patientId),
+      orderBy("createdAt", "desc")
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(
+      (doc) => ({ id: doc.id, ...doc.data() }) as Prescription
+    );
+  },
 
   async get(prescriptionId: string): Promise<Prescription | null> {
     const database = checkDb();
@@ -171,14 +207,14 @@ getByPatient: async (patientId: string): Promise<Prescription[]> => {
       {
         ...createData,
         createdAt: toISOString(),
-      },
+      }
     );
     return { id: docRef.id, ...createData, createdAt: toISOString() };
   },
 
   async update(
     prescriptionId: string,
-    data: Partial<Prescription>,
+    data: Partial<Prescription>
   ): Promise<void> {
     const database = checkDb();
     const docRef = doc(database, COLLECTIONS.PRESCRIPTIONS, prescriptionId);
@@ -204,32 +240,30 @@ getByPatient: async (patientId: string): Promise<Prescription[]> => {
   },
 };
 
+// ==================== TREATMENTS COLLECTION ====================
 export const treatmentsCollection = {
   async getAll(): Promise<Treatment[]> {
     const database = checkDb();
     const q = query(
       collection(database, COLLECTIONS.TREATMENTS),
-      orderBy("createdAt", "desc"),
+      orderBy("createdAt", "desc")
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Treatment);
   },
 
-  getByPatient: async (patientId: string): Promise<Treatment[]> => {
-  const database = checkDb();
-  console.log('🔍 Fetching treatments for patient:', patientId);
-  const q = query(
-    collection(database, COLLECTIONS.TREATMENTS),
-    where('patientId', '==', patientId)
-  );
-  const snapshot = await getDocs(q);
-  const results = snapshot.docs.map(doc => ({ 
-    id: doc.id, 
-    ...doc.data() 
-  } as Treatment));
-  console.log('🏥 Found treatments:', results.length);
-  return results;
-},
+  async getByPatient(patientId: string): Promise<Treatment[]> {
+    const database = checkDb();
+    const q = query(
+      collection(database, COLLECTIONS.TREATMENTS),
+      where("patientId", "==", patientId),
+      orderBy("createdAt", "desc")
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(
+      (doc) => ({ id: doc.id, ...doc.data() }) as Treatment
+    );
+  },
 
   async get(treatmentId: string): Promise<Treatment | null> {
     const database = checkDb();
@@ -264,17 +298,18 @@ export const treatmentsCollection = {
   },
 };
 
+// ==================== NOTIFICATIONS COLLECTION ====================
 export const notificationsCollection = {
   async getByUser(userId: string): Promise<Notification[]> {
     const database = checkDb();
     const q = query(
       collection(database, COLLECTIONS.NOTIFICATIONS),
       where("userId", "==", userId),
-      orderBy("createdAt", "desc"),
+      orderBy("createdAt", "desc")
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map(
-      (d) => ({ id: d.id, ...d.data() }) as Notification,
+      (d) => ({ id: d.id, ...d.data() }) as Notification
     );
   },
 
@@ -286,7 +321,7 @@ export const notificationsCollection = {
       {
         ...createData,
         createdAt: toISOString(),
-      },
+      }
     );
     return { id: docRef.id, ...createData, createdAt: toISOString() };
   },
@@ -300,6 +335,84 @@ export const notificationsCollection = {
   async delete(notificationId: string): Promise<void> {
     const database = checkDb();
     const docRef = doc(database, COLLECTIONS.NOTIFICATIONS, notificationId);
+    await deleteDoc(docRef);
+  },
+};
+
+// ==================== APPOINTMENTS COLLECTION ====================
+export const appointmentsCollection = {
+  async getAll(): Promise<Appointment[]> {
+    const database = checkDb();
+    const q = query(
+      collection(database, COLLECTIONS.APPOINTMENTS),
+      orderBy("appointmentDate", "desc")
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(
+      (d) => ({ id: d.id, ...d.data() }) as Appointment
+    );
+  },
+
+  async getByPatient(patientId: string): Promise<Appointment[]> {
+    const database = checkDb();
+    const q = query(
+      collection(database, COLLECTIONS.APPOINTMENTS),
+      where("patientId", "==", patientId),
+      orderBy("appointmentDate", "desc")
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(
+      (doc) => ({ id: doc.id, ...doc.data() }) as Appointment
+    );
+  },
+
+  async getByDoctor(doctorId: string): Promise<Appointment[]> {
+    const database = checkDb();
+    const q = query(
+      collection(database, COLLECTIONS.APPOINTMENTS),
+      where("doctorId", "==", doctorId),
+      orderBy("appointmentDate", "desc")
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(
+      (doc) => ({ id: doc.id, ...doc.data() }) as Appointment
+    );
+  },
+
+  async get(appointmentId: string): Promise<Appointment | null> {
+    const database = checkDb();
+    const docRef = doc(database, COLLECTIONS.APPOINTMENTS, appointmentId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as Appointment;
+    }
+    return null;
+  },
+
+  async create(data: InsertAppointment): Promise<Appointment> {
+    const database = checkDb();
+    const docRef = await addDoc(
+      collection(database, COLLECTIONS.APPOINTMENTS),
+      {
+        ...data,
+        createdAt: toISOString(),
+      }
+    );
+    return { id: docRef.id, ...data, createdAt: toISOString() };
+  },
+
+  async update(
+    appointmentId: string,
+    data: Partial<Appointment>
+  ): Promise<void> {
+    const database = checkDb();
+    const docRef = doc(database, COLLECTIONS.APPOINTMENTS, appointmentId);
+    await updateDoc(docRef, { ...data, updatedAt: toISOString() });
+  },
+
+  async delete(appointmentId: string): Promise<void> {
+    const database = checkDb();
+    const docRef = doc(database, COLLECTIONS.APPOINTMENTS, appointmentId);
     await deleteDoc(docRef);
   },
 };

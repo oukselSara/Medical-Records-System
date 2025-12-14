@@ -1,3 +1,4 @@
+// client/src/App.tsx
 import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -16,25 +17,15 @@ import Patients from "@/pages/Patients";
 import Prescriptions from "@/pages/Prescriptions";
 import Treatments from "@/pages/Treatments";
 import Notifications from "@/pages/Notifications";
+import Admin from "@/pages/Admin";
+import PatientPortal from "@/pages/PatientPortal";
 import NotFound from "@/pages/not-found";
 
 function AppContent() {
   const { user, firebaseUser, loading, isConfigured } = useAuth();
 
-  // Debug logging
-  console.log("🔍 Auth Debug:", {
-    loading,
-    isConfigured,
-    hasFirebaseUser: !!firebaseUser,
-    firebaseUserEmail: firebaseUser?.email,
-    hasUser: !!user,
-    userEmail: user?.email,
-    userRole: user?.role,
-  });
-
   // Show loading screen
   if (loading) {
-    console.log("⏳ Still loading auth state...");
     return <LoadingScreen />;
   }
 
@@ -43,33 +34,24 @@ function AppContent() {
     console.warn("⚠️ Firebase not configured! Using demo mode.");
   }
 
-  // Check if user is authenticated (check both firebaseUser and user)
+  // Check if user is authenticated
   const isAuthenticated = firebaseUser && user;
 
-  console.log(
-    "✅ Authentication status:",
-    isAuthenticated ? "LOGGED IN" : "NOT LOGGED IN",
-  );
-
-  // If no user, show auth routes (login/signup)
+  // If no user, show auth routes
   if (!isAuthenticated) {
     return (
       <Switch>
         <Route path="/signup" component={Signup} />
         <Route path="/login" component={Login} />
         <Route path="/">
-          {() => {
-            console.log("🔄 Redirecting to login...");
-            return <Redirect to="/login" />;
-          }}
+          <Redirect to="/login" />
         </Route>
-        <Route>{() => <Redirect to="/login" />}</Route>
+        <Route>
+          <Redirect to="/login" />
+        </Route>
       </Switch>
     );
   }
-
-  // User is authenticated - show main app
-  console.log("🎉 User authenticated! Showing main app.");
 
   const style = {
     "--sidebar-width": "16rem",
@@ -85,13 +67,102 @@ function AppContent() {
           <Header showSearch />
           <main className="flex-1 overflow-auto">
             <Switch>
-              <Route path="/">{() => <Redirect to="/dashboard" />}</Route>
-              <Route path="/dashboard" component={Dashboard} />
-              <Route path="/patients" component={Patients} />
-              <Route path="/patients/:id" component={Patients} />
-              <Route path="/prescriptions" component={Prescriptions} />
-              <Route path="/treatments" component={Treatments} />
+              {/* Default route based on role */}
+              <Route path="/">
+                {() => {
+                  if (user?.role === "patient") {
+                    return <Redirect to="/patient-portal" />;
+                  }
+                  return <Redirect to="/dashboard" />;
+                }}
+              </Route>
+
+              {/* Admin routes */}
+              <Route path="/admin">
+                {() => {
+                  if (user?.role !== "admin") {
+                    return <Redirect to="/dashboard" />;
+                  }
+                  return <Admin />;
+                }}
+              </Route>
+
+              {/* Patient routes */}
+              <Route path="/patient-portal">
+                {() => {
+                  if (user?.role !== "patient") {
+                    return <Redirect to="/dashboard" />;
+                  }
+                  return <PatientPortal />;
+                }}
+              </Route>
+
+              {/* Staff routes (admin, doctor, nurse) */}
+              <Route path="/dashboard">
+                {() => {
+                  if (user?.role === "patient") {
+                    return <Redirect to="/patient-portal" />;
+                  }
+                  return <Dashboard />;
+                }}
+              </Route>
+
+              <Route path="/patients">
+                {() => {
+                  if (
+                    user?.role !== "admin" &&
+                    user?.role !== "doctor" &&
+                    user?.role !== "nurse"
+                  ) {
+                    return <Redirect to="/" />;
+                  }
+                  return <Patients />;
+                }}
+              </Route>
+
+              <Route path="/patients/:id">
+                {() => {
+                  if (
+                    user?.role !== "admin" &&
+                    user?.role !== "doctor" &&
+                    user?.role !== "nurse"
+                  ) {
+                    return <Redirect to="/" />;
+                  }
+                  return <Patients />;
+                }}
+              </Route>
+
+              <Route path="/prescriptions">
+                {() => {
+                  if (
+                    user?.role !== "admin" &&
+                    user?.role !== "doctor" &&
+                    user?.role !== "pharmacist"
+                  ) {
+                    return <Redirect to="/" />;
+                  }
+                  return <Prescriptions />;
+                }}
+              </Route>
+
+              <Route path="/treatments">
+                {() => {
+                  if (
+                    user?.role !== "admin" &&
+                    user?.role !== "doctor" &&
+                    user?.role !== "nurse"
+                  ) {
+                    return <Redirect to="/" />;
+                  }
+                  return <Treatments />;
+                }}
+              </Route>
+
+              {/* Accessible to all authenticated users */}
               <Route path="/notifications" component={Notifications} />
+
+              {/* 404 */}
               <Route component={NotFound} />
             </Switch>
           </main>

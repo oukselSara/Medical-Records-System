@@ -1,6 +1,8 @@
+// shared/schema.ts
 import { z } from "zod";
 
-export const userRoles = ["doctor", "nurse", "pharmacist" ] as const;
+// Updated user roles to include admin and patient
+export const userRoles = ["admin", "doctor", "nurse", "pharmacist", "patient"] as const;
 export type UserRole = typeof userRoles[number];
 
 export const userSchema = z.object({
@@ -11,6 +13,11 @@ export const userSchema = z.object({
   role: z.enum(userRoles),
   department: z.string().optional(),
   licenseNumber: z.string().optional(),
+  // New fields for patients
+  patientId: z.string().optional(), // Links to patient record
+  isActive: z.boolean().default(true),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
 });
 
 export type User = z.infer<typeof userSchema>;
@@ -18,6 +25,8 @@ export type InsertUser = Omit<User, "id">;
 
 export const patientSchema = z.object({
   id: z.string(),
+  // Link to user account (optional - not all patients have accounts)
+  userId: z.string().optional(),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   dateOfBirth: z.string(),
@@ -100,7 +109,27 @@ export const notificationSchema = z.object({
 export type Notification = z.infer<typeof notificationSchema>;
 export type InsertNotification = Omit<Notification, "id" | "createdAt">;
 
+// Appointment schema for patient scheduling
+export const appointmentSchema = z.object({
+  id: z.string(),
+  patientId: z.string(),
+  patientName: z.string(),
+  doctorId: z.string(),
+  doctorName: z.string(),
+  appointmentDate: z.string(),
+  appointmentType: z.string(),
+  reason: z.string().optional(),
+  status: z.enum(["scheduled", "confirmed", "completed", "cancelled"]).default("scheduled"),
+  notes: z.string().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string().optional(),
+});
+
+export type Appointment = z.infer<typeof appointmentSchema>;
+export type InsertAppointment = Omit<Appointment, "id" | "createdAt">;
+
 export const insertPatientSchema = patientSchema.omit({ id: true, createdAt: true });
 export const insertPrescriptionSchema = prescriptionSchema.omit({ id: true, createdAt: true });
 export const insertTreatmentSchema = treatmentSchema.omit({ id: true, createdAt: true });
 export const insertNotificationSchema = notificationSchema.omit({ id: true, createdAt: true });
+export const insertAppointmentSchema = appointmentSchema.omit({ id: true, createdAt: true });
