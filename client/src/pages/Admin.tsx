@@ -3,7 +3,13 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import { usersCollection, patientsCollection } from "@/lib/firestore";
+import {
+  usersCollection,
+  patientsCollection,
+  prescriptionsCollection,
+  treatmentsCollection,
+  appointmentsCollection
+} from "@/lib/firestore";
 import { GlassCard } from "@/components/GlassCard";
 import { SkeletonList } from "@/components/LoadingSpinner";
 import { RoleBadge } from "@/components/StatusBadge";
@@ -55,6 +61,13 @@ import {
   Calendar,
   Phone,
   MapPin,
+  Pill,
+  Stethoscope,
+  UserCheck,
+  TrendingUp,
+  TrendingDown,
+  Clock,
+  AlertCircle,
 } from "lucide-react";
 import { z } from "zod";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -107,6 +120,24 @@ export default function Admin() {
       const allPatients = await patientsCollection.getAll();
       return allPatients;
     },
+    enabled: user?.role === "admin",
+  });
+
+  const { data: prescriptions = [] } = useQuery({
+    queryKey: ["/api/admin/prescriptions"],
+    queryFn: () => prescriptionsCollection.getAll(),
+    enabled: user?.role === "admin",
+  });
+
+  const { data: treatments = [] } = useQuery({
+    queryKey: ["/api/admin/treatments"],
+    queryFn: () => treatmentsCollection.getAll(),
+    enabled: user?.role === "admin",
+  });
+
+  const { data: appointments = [] } = useQuery({
+    queryKey: ["/api/admin/appointments"],
+    queryFn: () => appointmentsCollection.getAll(),
     enabled: user?.role === "admin",
   });
 
@@ -189,6 +220,69 @@ export default function Admin() {
   const unlinkedPatients = patients.filter(p => !p.userId);
   const linkedPatients = patients.filter(p => p.userId);
 
+  // Calculate comprehensive statistics
+  const activeUsers = users.filter((u) => u.isActive);
+  const inactiveUsers = users.filter((u) => !u.isActive);
+
+  // User statistics by role
+  const doctorsCount = users.filter((u) => u.role === "doctor").length;
+  const nursesCount = users.filter((u) => u.role === "nurse").length;
+  const pharmacistsCount = users.filter((u) => u.role === "pharmacist").length;
+  const patientUsersCount = users.filter((u) => u.role === "patient").length;
+
+  // Patient statistics
+  const activePatients = patients.filter((p) => p.status === "active").length;
+  const criticalPatients = patients.filter((p) => p.status === "critical").length;
+  const inactivePatients = patients.filter((p) => p.status === "inactive").length;
+
+  // Prescription statistics
+  const activePrescriptions = prescriptions.filter((p) => p.status === "active").length;
+  const completedPrescriptions = prescriptions.filter((p) => p.status === "completed").length;
+  const pendingPrescriptions = prescriptions.filter((p) => p.status === "pending").length;
+  const dispensedPrescriptions = prescriptions.filter((p) => p.dispensed).length;
+
+  // Treatment statistics
+  const activeTreatments = treatments.filter((t) => t.status === "active").length;
+  const completedTreatments = treatments.filter((t) => t.status === "completed").length;
+
+  // Appointment statistics
+  const scheduledAppointments = appointments.filter((a) => a.status === "scheduled").length;
+  const completedAppointments = appointments.filter((a) => a.status === "completed").length;
+  const cancelledAppointments = appointments.filter((a) => a.status === "cancelled").length;
+
+  // Calculate trends (comparing last 7 days vs previous 7 days)
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+  const recentPatients = patients.filter((p) => {
+    const createdDate = new Date(p.createdAt);
+    return createdDate >= sevenDaysAgo;
+  }).length;
+
+  const previousWeekPatients = patients.filter((p) => {
+    const createdDate = new Date(p.createdAt);
+    return createdDate >= fourteenDaysAgo && createdDate < sevenDaysAgo;
+  }).length;
+
+  const patientTrend = previousWeekPatients === 0
+    ? (recentPatients > 0 ? 100 : 0)
+    : ((recentPatients - previousWeekPatients) / previousWeekPatients) * 100;
+
+  const recentPrescriptions = prescriptions.filter((p) => {
+    const createdDate = new Date(p.createdAt);
+    return createdDate >= sevenDaysAgo;
+  }).length;
+
+  const previousWeekPrescriptions = prescriptions.filter((p) => {
+    const createdDate = new Date(p.createdAt);
+    return createdDate >= fourteenDaysAgo && createdDate < sevenDaysAgo;
+  }).length;
+
+  const prescriptionTrend = previousWeekPrescriptions === 0
+    ? (recentPrescriptions > 0 ? 100 : 0)
+    : ((recentPrescriptions - previousWeekPrescriptions) / previousWeekPrescriptions) * 100;
+
   const onSubmit = (values: FormValues) => {
     if (editingUser) {
       updateUserMutation.mutate({
@@ -214,30 +308,79 @@ export default function Admin() {
     setIsDialogOpen(true);
   };
 
-  const stats = [
+  const primaryStats = [
     {
       label: "Total Users",
       value: users.length,
+      subValue: `${activeUsers.length} active`,
       icon: Users,
       color: "from-blue-500 to-cyan-500",
-    },
-    {
-      label: "Active Users",
-      value: users.filter((u) => u.isActive).length,
-      icon: Activity,
-      color: "from-emerald-500 to-teal-500",
+      bgColor: "bg-blue-50",
+      textColor: "text-blue-600",
     },
     {
       label: "Total Patients",
       value: patients.length,
-      icon: Users,
+      subValue: `${criticalPatients} critical`,
+      icon: UserCheck,
       color: "from-pink-500 to-rose-500",
+      bgColor: "bg-pink-50",
+      textColor: "text-pink-600",
+      trend: patientTrend,
     },
     {
-      label: "Unlinked Patients",
-      value: unlinkedPatients.length,
-      icon: LinkIcon,
-      color: "from-orange-500 to-red-500",
+      label: "Prescriptions",
+      value: prescriptions.length,
+      subValue: `${activePrescriptions} active`,
+      icon: Pill,
+      color: "from-purple-500 to-indigo-500",
+      bgColor: "bg-purple-50",
+      textColor: "text-purple-600",
+      trend: prescriptionTrend,
+    },
+    {
+      label: "Treatments",
+      value: treatments.length,
+      subValue: `${activeTreatments} active`,
+      icon: Stethoscope,
+      color: "from-emerald-500 to-teal-500",
+      bgColor: "bg-emerald-50",
+      textColor: "text-emerald-600",
+    },
+  ];
+
+  const detailedStats = [
+    {
+      category: "Staff Distribution",
+      items: [
+        { label: "Doctors", value: doctorsCount, icon: Stethoscope, color: "text-purple-600" },
+        { label: "Nurses", value: nursesCount, icon: Activity, color: "text-blue-600" },
+        { label: "Pharmacists", value: pharmacistsCount, icon: Pill, color: "text-teal-600" },
+      ],
+    },
+    {
+      category: "Patient Status",
+      items: [
+        { label: "Active", value: activePatients, icon: CheckCircle, color: "text-emerald-600" },
+        { label: "Critical", value: criticalPatients, icon: AlertCircle, color: "text-red-600" },
+        { label: "Inactive", value: inactivePatients, icon: XCircle, color: "text-gray-600" },
+      ],
+    },
+    {
+      category: "Prescriptions",
+      items: [
+        { label: "Active", value: activePrescriptions, icon: Activity, color: "text-emerald-600" },
+        { label: "Pending", value: pendingPrescriptions, icon: Clock, color: "text-orange-600" },
+        { label: "Completed", value: completedPrescriptions, icon: CheckCircle, color: "text-blue-600" },
+      ],
+    },
+    {
+      category: "Appointments",
+      items: [
+        { label: "Scheduled", value: scheduledAppointments, icon: Calendar, color: "text-blue-600" },
+        { label: "Completed", value: completedAppointments, icon: CheckCircle, color: "text-emerald-600" },
+        { label: "Cancelled", value: cancelledAppointments, icon: XCircle, color: "text-red-600" },
+      ],
     },
   ];
 
@@ -259,26 +402,172 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Statistics Cards */}
+      {/* Primary Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <GlassCard key={stat.label} className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-                <p className="text-3xl font-bold mt-1 text-gray-800 dark:text-white">
-                  {stat.value}
-                </p>
+        {primaryStats.map((stat) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <GlassCard className="p-5 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground font-medium">{stat.label}</p>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <p className="text-3xl font-bold text-gray-800 dark:text-white">
+                      {stat.value}
+                    </p>
+                    {stat.trend !== undefined && (
+                      <span className={`flex items-center text-xs font-medium ${
+                        stat.trend >= 0 ? 'text-emerald-600' : 'text-red-600'
+                      }`}>
+                        {stat.trend >= 0 ? (
+                          <TrendingUp className="w-3 h-3 mr-0.5" />
+                        ) : (
+                          <TrendingDown className="w-3 h-3 mr-0.5" />
+                        )}
+                        {Math.abs(stat.trend).toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{stat.subValue}</p>
+                </div>
+                <div
+                  className={`flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-br ${stat.color} shadow-md`}
+                >
+                  <stat.icon className="w-6 h-6 text-white" />
+                </div>
               </div>
-              <div
-                className={`flex items-center justify-center w-12 h-12 rounded-md bg-gradient-to-br ${stat.color} shadow-lg`}
-              >
-                <stat.icon className="w-6 h-6 text-white" />
-              </div>
+            </GlassCard>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Detailed Statistics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {detailedStats.map((section) => (
+          <GlassCard key={section.category} className="p-5">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+              {section.category}
+            </h3>
+            <div className="space-y-3">
+              {section.items.map((item) => (
+                <div key={item.label} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <item.icon className={`w-4 h-4 ${item.color}`} />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">{item.label}</span>
+                  </div>
+                  <span className="text-lg font-bold text-gray-800 dark:text-white">
+                    {item.value}
+                  </span>
+                </div>
+              ))}
             </div>
           </GlassCard>
         ))}
       </div>
+
+      {/* Quick Insights Section */}
+      <GlassCard className="p-6">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+          <Activity className="w-5 h-5 text-indigo-500" />
+          System Overview
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">User Activity Rate</span>
+              <span className="font-semibold text-gray-800 dark:text-white">
+                {users.length > 0 ? ((activeUsers.length / users.length) * 100).toFixed(0) : 0}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 h-2 rounded-full transition-all"
+                style={{ width: `${users.length > 0 ? (activeUsers.length / users.length) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Patient Link Rate</span>
+              <span className="font-semibold text-gray-800 dark:text-white">
+                {patients.length > 0 ? ((linkedPatients.length / patients.length) * 100).toFixed(0) : 0}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-gradient-to-r from-pink-500 to-rose-500 h-2 rounded-full transition-all"
+                style={{ width: `${patients.length > 0 ? (linkedPatients.length / patients.length) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Prescription Completion</span>
+              <span className="font-semibold text-gray-800 dark:text-white">
+                {prescriptions.length > 0 ? ((completedPrescriptions / prescriptions.length) * 100).toFixed(0) : 0}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-gradient-to-r from-purple-500 to-indigo-500 h-2 rounded-full transition-all"
+                style={{ width: `${prescriptions.length > 0 ? (completedPrescriptions / prescriptions.length) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
+              <Users className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">New Patients (7 days)</p>
+              <p className="text-xl font-bold text-gray-800 dark:text-white">{recentPatients}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-500">
+              <Pill className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">New Prescriptions (7 days)</p>
+              <p className="text-xl font-bold text-gray-800 dark:text-white">{recentPrescriptions}</p>
+            </div>
+          </div>
+
+          {unlinkedPatients.length > 0 && (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-500">
+                <AlertCircle className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Unlinked Patients</p>
+                <p className="text-xl font-bold text-gray-800 dark:text-white">{unlinkedPatients.length}</p>
+              </div>
+            </div>
+          )}
+
+          {criticalPatients > 0 && (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-rose-500">
+                <AlertCircle className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Critical Patients</p>
+                <p className="text-xl font-bold text-red-600">{criticalPatients}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </GlassCard>
 
       {/* Tabs for Users and Patients */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>

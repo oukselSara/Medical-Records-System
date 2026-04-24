@@ -19,6 +19,7 @@ import Treatments from "@/pages/Treatments";
 import Notifications from "@/pages/Notifications";
 import Admin from "@/pages/Admin";
 import PatientPortal from "@/pages/PatientPortal";
+import PatientAppointments from "@/pages/PatientAppointments";
 import NotFound from "@/pages/not-found";
 
 function AppContent() {
@@ -87,15 +88,11 @@ function AppContent() {
                 }}
               </Route>
 
-              {/* Patient routes */}
-              <Route path="/patient-portal">
-                {() => {
-                  if (user?.role !== "patient") {
-                    return <Redirect to="/dashboard" />;
-                  }
-                  return <PatientPortal />;
-                }}
-              </Route>
+              {/* Patient Portal - Open to all (showing Sara's static profile) */}
+              <Route path="/patient-portal" component={PatientPortal} />
+
+              {/* Patient Appointments */}
+              <Route path="/patient-appointments" component={PatientAppointments} />
 
               {/* Staff routes (admin, doctor, nurse) */}
               <Route path="/dashboard">

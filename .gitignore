@@ -8,3 +8,4 @@ serviceAccountKey*.json*
 attached_assets/*.txt
 firebase*.json
 *.bin
+nul

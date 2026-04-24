@@ -54,11 +54,11 @@ const LoginPage = () => {
         formData.email,
         formData.password,
       );
-      console.log("✅ Login successful:", result.user.email);
+      console.log("âœ… Login successful:", result.user.email);
       showToast("Welcome back!", "You have successfully signed in.");
       // Navigate to dashboard - the AuthContext will handle the redirect
       setTimeout(() => {
-        console.log("🔄 Navigating to dashboard...");
+        console.log("ðŸ”„ Navigating to dashboard...");
         setLocation("/dashboard");
       }, 800);
     } catch (error) {
@@ -76,11 +76,11 @@ const LoginPage = () => {
     setIsGoogleLoading(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      console.log("✅ Google login successful:", result.user.email);
+      console.log("âœ… Google login successful:", result.user.email);
       showToast("Welcome!", "You have successfully signed in with Google.");
       // Navigate to dashboard
       setTimeout(() => {
-        console.log("🔄 Navigating to dashboard...");
+        console.log("ðŸ”„ Navigating to dashboard...");
         setLocation("/dashboard");
       }, 800);
     } catch (error) {

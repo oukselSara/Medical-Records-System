@@ -42,6 +42,7 @@ const menuItems = {
     { title: "Patients", url: "/patients", icon: Users },
     { title: "Prescriptions", url: "/prescriptions", icon: Pill },
     { title: "Treatments", url: "/treatments", icon: Activity },
+    { title: "Patient Portal Demo", url: "/patient-portal", icon: User },
     { title: "Notifications", url: "/notifications", icon: Bell },
   ],
   doctor: [
@@ -49,17 +50,20 @@ const menuItems = {
     { title: "Patients", url: "/patients", icon: Users },
     { title: "Prescriptions", url: "/prescriptions", icon: Pill },
     { title: "Treatments", url: "/treatments", icon: Activity },
+    { title: "Patient Portal Demo", url: "/patient-portal", icon: User },
     { title: "Notifications", url: "/notifications", icon: Bell },
   ],
   nurse: [
     { title: "Dashboard", url: "/", icon: LayoutDashboard },
     { title: "Patients", url: "/patients", icon: Users },
     { title: "Treatments", url: "/treatments", icon: Activity },
+    { title: "Patient Portal Demo", url: "/patient-portal", icon: User },
     { title: "Notifications", url: "/notifications", icon: Bell },
   ],
   pharmacist: [
     { title: "Dashboard", url: "/", icon: LayoutDashboard },
     { title: "Prescriptions", url: "/prescriptions", icon: Pill },
+    { title: "Patient Portal Demo", url: "/patient-portal", icon: User },
     { title: "Notifications", url: "/notifications", icon: Bell },
   ],
   patient: [

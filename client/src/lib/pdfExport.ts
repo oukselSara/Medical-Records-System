@@ -6,429 +6,546 @@ export const generatePatientPDF = (
   prescriptions: Prescription[] = [],
   treatments: Treatment[] = []
 ) => {
-  console.log('✨ FRENCH MEDICAL FORM PDF GENERATOR ✨');
-  console.log('Patient:', patient.firstName, patient.lastName);
-  console.log('Prescriptions:', prescriptions.length);
-  console.log('Treatments:', treatments.length);
-  
   const doc = new jsPDF();
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
-  const margin = 20;
+  const margin = 15;
   let Y = margin;
 
-  // Colors
-  const primaryPink: [number, number, number] = [236, 72, 153];
-  const darkGray: [number, number, number] = [55, 65, 81];
-  const lightGray: [number, number, number] = [150, 150, 150];
+  // Premium Color Palette
+  const pink = [236, 72, 153];
+  const darkText = [31, 41, 55];
+  const grayText = [107, 114, 128];
+  const lightGray = [156, 163, 175];
+  const red = [239, 68, 68];
+  const amber = [245, 158, 11];
+  const green = [34, 197, 94];
 
-  // Calculate age
-  const age = Math.floor((Date.now() - new Date(patient.dateOfBirth).getTime()) / 31557600000);
   const now = new Date();
+  const formatDate = (date: Date | string) => {
+    const d = new Date(date);
+    return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+  };
 
-  // ==================== HEADER ====================
-  // Top border line
-  doc.setDrawColor(primaryPink[0], primaryPink[1], primaryPink[2]);
-  doc.setLineWidth(0.8);
+  // ==================== PREMIUM HEADER ====================
+  // Top pink line
+  doc.setDrawColor(pink[0], pink[1], pink[2]);
+  doc.setLineWidth(2);
   doc.line(margin, Y, W - margin, Y);
-  Y += 8;
+  Y += 10;
 
-  // Clinic Name (Centered, Bold, Large)
-  doc.setFontSize(16);
-  doc.setTextColor(primaryPink[0], primaryPink[1], primaryPink[2]);
+  // LOGO/TITLE - Big and Bold
+  doc.setFontSize(22);
+  doc.setTextColor(pink[0], pink[1], pink[2]);
   doc.setFont('helvetica', 'bold');
-  doc.text('CABINET MEDICAL du Dr MediCare', W / 2, Y, { align: 'center' });
-  Y += 8;
+  doc.text('MediCare Health System', W / 2, Y, { align: 'center' });
+  Y += 7;
 
-  // Second border line
-  doc.setDrawColor(primaryPink[0], primaryPink[1], primaryPink[2]);
+  // Contact details
+  doc.setFontSize(9);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.setFont('helvetica', 'normal');
+  doc.text('123 Healthcare Avenue, Suite 100, Metropolis, NY 10001', W / 2, Y, { align: 'center' });
+  Y += 4;
+  doc.text('Phone: (123) 456-7890 | Email: contact@medicare.health', W / 2, Y, { align: 'center' });
+  Y += 4;
+  doc.text('Website: www.medicare.health', W / 2, Y, { align: 'center' });
+  Y += 7;
+
+  // Bottom line
+  doc.setDrawColor(pink[0], pink[1], pink[2]);
   doc.setLineWidth(0.5);
-  doc.line(margin + 5, Y, W - margin - 5, Y);
-  Y += 10;
+  doc.line(margin + 10, Y, W - margin - 10, Y);
+  Y += 3;
 
-  // Doctor info section (Left aligned - Bilingual)
-  doc.setFontSize(9);
-  doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-  doc.setFont('helvetica', 'normal');
-  
-  doc.text('Dr : MediCare Health System', margin + 5, Y);
-  Y += 5;
-  doc.text('Specialist in General Medicine', margin + 5, Y);
-  Y += 5;
-  doc.text('Spécialiste en Médecine Générale', margin + 5, Y);
-  Y += 5;
-  doc.text('Electronic Medical Records System', margin + 5, Y);
-  Y += 5;
-  doc.text('OM : 4177', margin + 5, Y);
-  Y += 10;
-
-  // Patient info section (Bilingual)
-  const infoStartY = Y;
-  
-  // Left side - Name (French)
+  // Date in corner
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Nom / Name', margin + 5, Y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`: ${patient.lastName.toUpperCase()}`, margin + 28, Y);
-  Y += 6;
+  doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+  doc.text(formatDate(now), W - margin, margin + 12, { align: 'right' });
 
-  doc.setFont('helvetica', 'bold');
-  doc.text('Prénom / First Name', margin + 5, Y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`: ${patient.firstName}`, margin + 40, Y);
+  Y += 10;
 
-  // Right side - Date and Age
-  const rightX = W - margin - 55;
-  let rightY = infoStartY;
+  // Document title
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+  doc.text('Patient Medical Record', W / 2, Y, { align: 'center' });
+  Y += 12;
+
+  // ==================== PATIENT INFO BOX ====================
+  const boxH = 58;
   
-  doc.setFont('helvetica', 'bold');
-  doc.text('Date', rightX, rightY);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`: ${now.toLocaleDateString('en-US')}`, rightX + 12, rightY);
-  rightY += 6;
+  // Box background
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(margin, Y, W - 2 * margin, boxH, 3, 3, 'F');
+  doc.setDrawColor(pink[0], pink[1], pink[2]);
+  doc.setLineWidth(1);
+  doc.roundedRect(margin, Y, W - 2 * margin, boxH, 3, 3, 'S');
   
+  let boxY = Y + 8;
+
+  // Section title
+  doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text('Age / Âge', rightX, rightY);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`: ${age} years / ans`, rightX + 18, rightY);
+  doc.setTextColor(pink[0], pink[1], pink[2]);
+  doc.text('Patient Information', margin + 5, boxY);
+  boxY += 8;
 
-  Y += 15;
+  // Name + Status
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+  const name = `${patient.firstName} ${patient.lastName}`;
+  doc.text(name, margin + 5, boxY);
+  
+  // Status badge
+  const statusX = margin + 5 + doc.getTextWidth(name) + 5;
+  const statusColors: Record<string, number[]> = {
+    active: green,
+    inactive: lightGray,
+    critical: red
+  };
+  const sColor = statusColors[patient.status] || green;
+  doc.setFillColor(sColor[0], sColor[1], sColor[2]);
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  const sTxt = patient.status.toUpperCase();
+  const sW = doc.getTextWidth(sTxt) + 8;
+  doc.roundedRect(statusX, boxY - 4, sW, 6, 2, 2, 'F');
+  doc.text(sTxt, statusX + 4, boxY);
+  boxY += 8;
 
-  // Additional patient info (Bilingual)
+  // Two columns
+  const c1 = margin + 5;
+  const c2 = W / 2 + 5;
+  let y1 = boxY;
+  let y2 = boxY;
+
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-  
-  if (patient.gender) {
-    doc.text(`Gender / Genre: ${patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1)}`, margin + 5, Y);
-    Y += 5;
-  }
-  
-  if (patient.email) {
-    doc.text(`Email / Courriel: ${patient.email}`, margin + 5, Y);
-    Y += 5;
-  }
-  
+  doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+
+  // LEFT COLUMN
+  doc.setFont('helvetica', 'bold');
+  doc.text('Birth Date', c1, y1);
+  doc.setFont('helvetica', 'normal');
+  doc.text(patient.dateOfBirth, c1 + 24, y1);
+  y1 += 5;
+
+  doc.setFont('helvetica', 'bold');
+  doc.text('Gender', c1, y1);
+  doc.setFont('helvetica', 'normal');
+  doc.text(patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1), c1 + 24, y1);
+  y1 += 5;
+
   if (patient.phone) {
-    doc.text(`Phone / Tél: ${patient.phone}`, margin + 5, Y);
-    Y += 5;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Phone', c1, y1);
+    doc.setFont('helvetica', 'normal');
+    doc.text(patient.phone, c1 + 24, y1);
+    y1 += 5;
   }
-  
-  if (patient.address) {
-    doc.text(`Address / Adresse: ${patient.address}`, margin + 5, Y);
-    Y += 5;
-  }
-  
+
   if (patient.bloodType) {
     doc.setFont('helvetica', 'bold');
-    doc.text(`Blood Type / Groupe sanguin: ${patient.bloodType}`, margin + 5, Y);
+    doc.text('Blood Type', c1, y1);
     doc.setFont('helvetica', 'normal');
-    Y += 5;
+    doc.text(patient.bloodType, c1 + 24, y1);
   }
 
-  Y += 5;
-
-  // Emergency Contact (Bilingual)
-  if (patient.emergencyContactName || patient.emergencyContactPhone) {
+  // RIGHT COLUMN
+  if (patient.email) {
     doc.setFont('helvetica', 'bold');
-    doc.text('Emergency Contact / Contact d\'urgence:', margin + 5, Y);
+    doc.text('Email', c2, y2);
     doc.setFont('helvetica', 'normal');
-    Y += 5;
+    const email = patient.email.length > 35 ? patient.email.substring(0, 32) + '...' : patient.email;
+    doc.text(email, c2 + 24, y2);
+    y2 += 5;
+  }
+
+  if (patient.address) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('Address', c2, y2);
+    doc.setFont('helvetica', 'normal');
+    const addrLines = doc.splitTextToSize(patient.address, W / 2 - 35);
+    doc.text(addrLines, c2 + 24, y2);
+  }
+
+  Y += boxH + 10;
+
+  // ==================== EMERGENCY CONTACT ====================
+  if (patient.emergencyContactName || patient.emergencyContactPhone) {
+    const eH = 20;
+    
+    doc.setFillColor(254, 243, 199);
+    doc.roundedRect(margin, Y, W - 2 * margin, eH, 3, 3, 'F');
+    doc.setDrawColor(amber[0], amber[1], amber[2]);
+    doc.setLineWidth(0.8);
+    doc.roundedRect(margin, Y, W - 2 * margin, eH, 3, 3, 'S');
+    
+    let eY = Y + 7;
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(180, 83, 9);
+    doc.text('Emergency Contact', margin + 5, eY);
+    eY += 7;
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(darkText[0], darkText[1], darkText[2]);
     
     if (patient.emergencyContactName) {
-      doc.text(`${patient.emergencyContactName}`, margin + 8, Y);
-      Y += 5;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Contact Name', margin + 5, eY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(patient.emergencyContactName, margin + 35, eY);
     }
     
     if (patient.emergencyContactPhone) {
-      doc.text(`Phone / Tél: ${patient.emergencyContactPhone}`, margin + 8, Y);
-      Y += 5;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Contact Phone', c2, eY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(patient.emergencyContactPhone, c2 + 32, eY);
     }
     
-    Y += 3;
+    Y += eH + 10;
   }
 
-  // Medical History & Allergies (Bilingual)
+  // ==================== MEDICAL HISTORY ====================
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(pink[0], pink[1], pink[2]);
+  doc.text('General Medical History', margin + 5, Y);
+  Y += 8;
+
+  // Medical History
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+  doc.text('Medical History', margin + 5, Y);
+  Y += 5;
+  
+  doc.setFont('helvetica', 'normal');
   if (patient.medicalHistory && patient.medicalHistory.length > 0) {
-    doc.setFont('helvetica', 'bold');
-    doc.text('Medical History / Antécédents médicaux:', margin + 5, Y);
-    doc.setFont('helvetica', 'normal');
-    Y += 5;
-    
-    patient.medicalHistory.forEach(hist => {
-      const lines = doc.splitTextToSize(hist, W - 2 * margin - 10);
-      doc.text(lines, margin + 8, Y);
-      Y += lines.length * 5;
+    patient.medicalHistory.forEach(h => {
+      const lines = doc.splitTextToSize(h, W - 2 * margin - 10);
+      doc.text(lines, margin + 7, Y);
+      Y += lines.length * 4.5;
     });
-    Y += 3;
+  } else {
+    doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
+    doc.text('No significant medical history recorded', margin + 7, Y);
+    doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+    Y += 5;
   }
+  Y += 4;
 
+  // Allergies
+  doc.setFont('helvetica', 'bold');
+  doc.text('Allergies', margin + 5, Y);
+  Y += 5;
+  
+  doc.setFont('helvetica', 'normal');
   if (patient.allergies && patient.allergies.length > 0) {
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(220, 38, 38);
-    doc.text('⚠ Allergies:', margin + 5, Y);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-    doc.text(patient.allergies.join(', '), margin + 25, Y);
-    Y += 8;
+    doc.setTextColor(red[0], red[1], red[2]);
+    doc.text(patient.allergies.join(', '), margin + 7, Y);
+    doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+  } else {
+    doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
+    doc.text('No known allergies', margin + 7, Y);
+    doc.setTextColor(darkText[0], darkText[1], darkText[2]);
   }
+  Y += 8;
 
+  // Current Medications
   if (patient.currentMedications && patient.currentMedications.length > 0) {
     doc.setFont('helvetica', 'bold');
-    doc.text('Current Medications / Médicaments actuels:', margin + 5, Y);
-    doc.setFont('helvetica', 'normal');
+    doc.text('Current Medications', margin + 5, Y);
     Y += 5;
     
-    patient.currentMedications.forEach(med => {
-      doc.text(`• ${med}`, margin + 8, Y);
+    doc.setFont('helvetica', 'normal');
+    patient.currentMedications.forEach(m => {
+      doc.text(`• ${m}`, margin + 7, Y);
       Y += 5;
     });
-    Y += 3;
+    Y += 4;
   }
 
-  // ==================== PRESCRIPTIONS SECTION ====================
+  // ==================== PRESCRIPTIONS ====================
   if (prescriptions && prescriptions.length > 0) {
-    if (Y > H - 100) {
+    if (Y > H - 70) {
       doc.addPage();
       Y = margin;
     }
 
     Y += 5;
 
-    // Section title (centered, underlined) - Bilingual
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'italic');
-    doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-    const titleText = 'PRESCRIPTIONS / ORDONNANCES';
-    const titleWidth = doc.getTextWidth(titleText);
-    doc.text(titleText, W / 2, Y, { align: 'center' });
-    
-    // Underline
-    doc.setDrawColor(darkGray[0], darkGray[1], darkGray[2]);
-    doc.setLineWidth(0.3);
-    doc.line(W / 2 - titleWidth / 2, Y + 1, W / 2 + titleWidth / 2, Y + 1);
-    Y += 12;
+    // Divider
+    doc.setDrawColor(pink[0], pink[1], pink[2]);
+    doc.setLineWidth(1.5);
+    doc.line(margin, Y, W - margin, Y);
+    Y += 10;
 
-    // List header - Bilingual
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Please fill / Faire s.v.p :', margin + 10, Y);
+    // Title
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(pink[0], pink[1], pink[2]);
+    doc.text('ORDONNANCE MÉDICALE / PRESCRIPTION', W / 2, Y, { align: 'center' });
+    Y += 10;
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+    doc.text('Faire s.v.p / Please fill:', margin + 5, Y);
     Y += 8;
 
-    // Prescriptions list
-    prescriptions.forEach((rx, index) => {
-      if (Y > H - 80) {
+    prescriptions.forEach((rx, i) => {
+      if (Y > H - 50) {
         doc.addPage();
-        Y = margin;
+        Y = margin + 10;
       }
 
-      doc.setFontSize(10);
+      // Prescription card
+      const cardY = Y;
+      const cardH = 32 + (rx.instructions ? 8 : 0) + (rx.duration ? 4 : 0);
+      
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(margin + 2, cardY, W - 2 * margin - 4, cardH, 2, 2, 'F');
+      doc.setDrawColor(pink[0], pink[1], pink[2]);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(margin + 2, cardY, W - 2 * margin - 4, cardH, 2, 2, 'S');
+      
+      Y = cardY + 6;
+
+      // Number + Med name
+      doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
+      doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+      doc.text(`${i + 1}.`, margin + 6, Y);
+      doc.text(rx.medication, margin + 12, Y);
+      Y += 6;
       
-      // Medication name with dash
-      doc.text(`- ${rx.medication}`, margin + 20, Y);
-      Y += 5;
-      
-      // Dosage and frequency
-      doc.setFont('helvetica', 'italic');
+      // Dosage + Frequency
+      doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
-      doc.text(`  ${rx.dosage} - ${rx.frequency}`, margin + 22, Y);
+      doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+      doc.text(`${rx.dosage} - ${rx.frequency}`, margin + 12, Y);
       Y += 5;
       
-      // Duration (Bilingual)
+      // Duration
       if (rx.duration) {
-        doc.text(`  Duration / Durée: ${rx.duration}`, margin + 22, Y);
-        Y += 5;
+        doc.setFontSize(8);
+        doc.text(`Durée / Duration: ${rx.duration}`, margin + 12, Y);
+        Y += 4;
       }
       
-      // Status (Bilingual)
-      doc.setFont('helvetica', 'normal');
+      // Status
       doc.setFontSize(8);
-      doc.text(`  Status / Statut: ${rx.status}`, margin + 22, Y);
-      Y += 4;
+      const check = rx.status === 'active' ? '✓' : '○';
+      doc.setTextColor(rx.status === 'active' ? green[0] : grayText[0], rx.status === 'active' ? green[1] : grayText[1], rx.status === 'active' ? green[2] : grayText[2]);
+      doc.text(`${check} Statut / Status: ${rx.status.toUpperCase()}`, margin + 12, Y);
+      Y += 5;
       
-      // Instructions (if any) - Bilingual
+      // Instructions
       if (rx.instructions) {
         doc.setFont('helvetica', 'italic');
         doc.setFontSize(8);
-        doc.text('  Instructions:', margin + 22, Y);
-        Y += 4;
-        const instrLines = doc.splitTextToSize(rx.instructions, W - margin - 50);
-        doc.text(instrLines, margin + 24, Y);
-        Y += instrLines.length * 4;
+        doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+        const inst = doc.splitTextToSize(rx.instructions, W - 2 * margin - 20);
+        doc.text(inst, margin + 12, Y);
+        Y += inst.length * 3.5 + 2;
       }
       
-      // Prescribed by (Bilingual)
+      // Footer: Doctor + Date
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
       doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
-      doc.text(`Prescribed by / Prescrit par: ${rx.prescribedByName}`, margin + 22, Y);
-      doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-      Y += 6;
+      doc.text(`Prescrit par / Prescribed by: ${rx.prescribedByName}`, margin + 12, Y);
+      if (rx.createdAt) {
+        doc.text(`Date: ${formatDate(rx.createdAt)}`, W - margin - 30, Y);
+      }
+      
+      Y += 10;
     });
   }
 
-  // ==================== TREATMENTS SECTION ====================
+  // ==================== TREATMENTS ====================
   if (treatments && treatments.length > 0) {
-    if (Y > H - 100) {
+    if (Y > H - 70) {
       doc.addPage();
       Y = margin;
     }
 
     Y += 5;
 
-    // Section title (Bilingual)
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'italic');
-    doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-    const treatmentTitle = 'TREATMENTS / TRAITEMENTS';
-    const treatmentTitleWidth = doc.getTextWidth(treatmentTitle);
-    doc.text(treatmentTitle, W / 2, Y, { align: 'center' });
-    
-    // Underline
-    doc.setDrawColor(darkGray[0], darkGray[1], darkGray[2]);
-    doc.setLineWidth(0.3);
-    doc.line(W / 2 - treatmentTitleWidth / 2, Y + 1, W / 2 + treatmentTitleWidth / 2, Y + 1);
-    Y += 12;
+    // Divider
+    doc.setDrawColor(pink[0], pink[1], pink[2]);
+    doc.setLineWidth(1.5);
+    doc.line(margin, Y, W - margin, Y);
+    Y += 10;
 
-    // Treatments list
-    treatments.forEach((tr, index) => {
-      if (Y > H - 80) {
+    // Title
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(pink[0], pink[1], pink[2]);
+    doc.text('TRAITEMENTS / TREATMENTS', W / 2, Y, { align: 'center' });
+    Y += 10;
+
+    treatments.forEach((tr, i) => {
+      if (Y > H - 50) {
         doc.addPage();
-        Y = margin;
+        Y = margin + 10;
       }
 
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
+      // Treatment card
+      const cardY = Y;
+      const cardH = 38 + (tr.notes ? 8 : 0) + (tr.diagnosis ? 4 : 0);
       
-      // Treatment type with dash
-      doc.text(`- ${tr.treatmentType}`, margin + 20, Y);
-      Y += 5;
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(margin + 2, cardY, W - 2 * margin - 4, cardH, 2, 2, 'F');
+      doc.setDrawColor(pink[0], pink[1], pink[2]);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(margin + 2, cardY, W - 2 * margin - 4, cardH, 2, 2, 'S');
+      
+      Y = cardY + 6;
+
+      // Number + Treatment name
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+      doc.text(`${i + 1}.`, margin + 6, Y);
+      doc.text(tr.treatmentType, margin + 12, Y);
+      Y += 6;
       
       // Description
       if (tr.description) {
-        doc.setFont('helvetica', 'italic');
+        doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
-        const descLines = doc.splitTextToSize(tr.description, W - margin - 50);
-        doc.text(descLines, margin + 22, Y);
-        Y += descLines.length * 4 + 2;
+        doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+        const desc = doc.splitTextToSize(tr.description, W - 2 * margin - 20);
+        doc.text(desc, margin + 12, Y);
+        Y += desc.length * 4 + 2;
       }
       
-      // Diagnosis (Bilingual)
+      // Diagnosis
       if (tr.diagnosis) {
-        doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
-        doc.text(`  Diagnosis / Diagnostic: ${tr.diagnosis}`, margin + 22, Y);
+        doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+        doc.text(`Diagnostic / Diagnosis: ${tr.diagnosis}`, margin + 12, Y);
         Y += 4;
       }
       
-      // Priority and Status (Bilingual)
+      // Priority + Status
       doc.setFontSize(8);
-      doc.text(`  Priority / Priorité: ${tr.priority.toUpperCase()} | Status / Statut: ${tr.status.toUpperCase()}`, margin + 22, Y);
+      const pColors: Record<string, number[]> = {
+        high: red,
+        medium: amber,
+        low: green
+      };
+      const pColor = pColors[tr.priority.toLowerCase()] || grayText;
+      doc.setTextColor(pColor[0], pColor[1], pColor[2]);
+      doc.text(`● Priorité / Priority: ${tr.priority.toUpperCase()}`, margin + 12, Y);
+      doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+      doc.text(`| Statut / Status: ${tr.status.toUpperCase()}`, margin + 60, Y);
       Y += 4;
       
-      // Scheduled date (Bilingual)
+      // Scheduled date
       if (tr.scheduledDate) {
-        const schedDate = new Date(tr.scheduledDate);
-        doc.text(`  Scheduled for / Prévu pour: ${schedDate.toLocaleDateString('en-US')} at / à ${schedDate.toLocaleTimeString('en-US')}`, margin + 22, Y);
+        doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+        const sDate = new Date(tr.scheduledDate);
+        const time = sDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        doc.text(`Prévu pour / Scheduled for: ${formatDate(tr.scheduledDate)} à / at ${time}`, margin + 12, Y);
         Y += 4;
       }
       
-      // Notes (Bilingual)
+      // Notes
       if (tr.notes) {
         doc.setFont('helvetica', 'italic');
         doc.setFontSize(8);
-        doc.text('  Notes:', margin + 22, Y);
-        Y += 4;
-        const noteLines = doc.splitTextToSize(tr.notes, W - margin - 50);
-        doc.text(noteLines, margin + 24, Y);
-        Y += noteLines.length * 4;
+        doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+        const notes = doc.splitTextToSize(`Notes: ${tr.notes}`, W - 2 * margin - 20);
+        doc.text(notes, margin + 12, Y);
+        Y += notes.length * 3.5 + 2;
       }
       
-      // Created by (Bilingual)
+      // Footer: Doctor + Date
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
       doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
-      doc.text(`By / Par: ${tr.createdByName}`, margin + 22, Y);
-      doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-      Y += 6;
+      doc.text(`Par / By: ${tr.createdByName}`, margin + 12, Y);
+      if (tr.createdAt) {
+        doc.text(`Date: ${formatDate(tr.createdAt)}`, W - margin - 30, Y);
+      }
+      
+      Y += 10;
     });
   }
 
-  // ==================== FOOTER ====================
-  // Position footer at bottom of last page
-  const totalPages = doc.getNumberOfPages();
-  doc.setPage(totalPages);
+  // ==================== FOOTER (ALL PAGES) ====================
+  const total = doc.getNumberOfPages();
   
-  Y = Math.max(Y + 10, H - 95);
-
-  // "Remerciements" (Thank you) - Bilingual
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-  doc.text('Thank you / Remerciements', W / 2, Y, { align: 'center' });
-  Y += 15;
-
-  // Doctor signature stamp box
-  const stampX = W / 2 - 40;
-  const stampY = Y;
-  const stampW = 80;
-  const stampH = 25;
-
-  // Stamp border (pink)
-  doc.setDrawColor(primaryPink[0], primaryPink[1], primaryPink[2]);
-  doc.setLineWidth(1);
-  doc.roundedRect(stampX, stampY, stampW, stampH, 3, 3, 'D');
-
-  // Stamp content
-  doc.setFontSize(10);
-  doc.setTextColor(primaryPink[0], primaryPink[1], primaryPink[2]);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Dr MediCare Health', stampX + stampW / 2, stampY + 8, { align: 'center' });
-  
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text('General Medicine / Médecine Générale', stampX + stampW / 2, stampY + 14, { align: 'center' });
-  
-  doc.setFontSize(8);
-  doc.text(`N° D'ORDRE: 4177`, stampX + stampW / 2, stampY + 20, { align: 'center' });
-
-  Y = stampY + stampH + 10;
-
-  // Bottom section (Bilingual)
-  doc.setFontSize(7);
-  doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-  doc.setFont('helvetica', 'italic');
-  doc.text("Patient identity established according to their declaration or that of their guardian", W / 2, Y, { align: 'center' });
-  Y += 3;
-  doc.text("L'identité du patient est établie selon sa déclaration ou celle de son tuteur", W / 2, Y, { align: 'center' });
-  Y += 5;
-
-  // Contact info (Bilingual)
-  doc.setFont('helvetica', 'normal');
-  doc.text('Address / Adresse : 123 Healthcare Avenue, Suite 100, Metropolis, NY 10001', margin, Y);
-  doc.text('Mobile / Mob : (123) 456-7890', W - margin, Y, { align: 'right' });
-  Y += 4;
-  
-  // Confidentiality notice (Bilingual)
-  doc.setFontSize(6);
-  doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
-  doc.text('⚠ Confidential Document - Protected Medical Information (HIPAA)', W / 2, Y, { align: 'center' });
-  Y += 3;
-  doc.text('⚠ Document confidentiel - Information médicale protégée (HIPAA)', W / 2, Y, { align: 'center' });
-
-  // ==================== PAGE NUMBERS ====================
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
+  for (let p = 1; p <= total; p++) {
+    doc.setPage(p);
+    
+    const fY = H - 32;
+    
+    // Line
+    doc.setDrawColor(pink[0], pink[1], pink[2]);
+    doc.setLineWidth(0.5);
+    doc.line(margin, fY, W - margin, fY);
+    
+    // Thank you
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+    doc.text('Remerciements / Thank You', W / 2, fY + 5, { align: 'center' });
+    
+    // Doctor stamp
+    const sY = fY + 9;
+    const sW = 70;
+    const sH = 17;
+    const sX = W / 2 - sW / 2;
+    
+    doc.setDrawColor(pink[0], pink[1], pink[2]);
+    doc.setLineWidth(1);
+    doc.roundedRect(sX, sY, sW, sH, 2, 2, 'S');
+    
+    doc.setFontSize(10);
+    doc.setTextColor(pink[0], pink[1], pink[2]);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Dr MediCare Health', sX + sW / 2, sY + 6, { align: 'center' });
     doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Médecine Générale', sX + sW / 2, sY + 10, { align: 'center' });
+    doc.setFontSize(7);
+    doc.text("N° D'ORDRE: 4177", sX + sW / 2, sY + 14, { align: 'center' });
+    
+    // Bottom
+    const bY = H - 13;
+    doc.setFontSize(6);
+    doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+    doc.setFont('helvetica', 'italic');
+    doc.text("L'identité du patient est établie selon sa déclaration ou celle de son tuteur", W / 2, bY, { align: 'center' });
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6);
+    doc.text('Adresse : 123 Healthcare Avenue, Suite 100, Metropolis, NY 10001', margin, bY + 3);
+    doc.text('Mob : (123) 456-7890', W - margin, bY + 3, { align: 'right' });
+    
+    doc.setFontSize(6);
     doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
-    doc.text(`${i}/${totalPages}`, W / 2, H - 5, { align: 'center' });
+    doc.text('⚠ CONFIDENTIAL MEDICAL RECORD', W / 2, bY + 6, { align: 'center' });
+    doc.text('Document confidentiel - Information médicale protégée (HIPAA)', W / 2, bY + 9, { align: 'center' });
+    
+    // Page number
+    doc.setFontSize(8);
+    doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+    doc.text(`${p}/${total}`, W / 2, H - 3, { align: 'center' });
   }
 
   // Save
-  const dateStr = now.toISOString().split('T')[0];
-  const filename = `Ordonnance_${patient.lastName}_${patient.firstName}_${dateStr}.pdf`;
-  console.log('Saving French medical form:', filename);
-  doc.save(filename);
+  const file = `MediCare_${patient.lastName}_${patient.firstName}_${formatDate(now).replace(/\//g, '-')}.pdf`;
+  doc.save(file);
 };
